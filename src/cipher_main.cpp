@@ -4,6 +4,7 @@
 
     This is the main cpp file that encrypts and decrypts strings and files.
 */
+#include <iostream>
 #include <fstream>
 int main (int argc, char* argv[])
 {
