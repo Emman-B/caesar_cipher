@@ -99,10 +99,53 @@ int main (int argc, char* argv[])
     }
     ////////////////////////////////////////////////////////////////
     // Begin Encryption/Decryption on String/File
-    // Default: -s or -f not provided, attempt to open as a file and process it; otherwise process it as string
-
+    // Default: -s and -f not provided, attempt to open as a file and process it; otherwise process it as string
+    std::cout << "-s and -f were not provided. Attempting to open " << processed << " as a file.\n";
+    std::ifstream readFile;     // readFile is the file being opened
+    readFile.open(processed);   // attempt to open the file
+    // if the file doesn't open, treat it like a string instead
+    if (!readFile.is_open())
+    {
+        std::string output = "";            // this is for outputting to stdout
+        int shift = calculateShift(key);    // receive shift amount
+        for (int i = 0; i < processed.length(); i++)
+        {
+            output += processCharacter(cipherMode, shift, processed[i]);
+        }
+        // now output is set to an encrypted/decrypted string
+        // describe the actions taken
+        std::cout << "File failed to open. Treating " << processed << " as a string.\n";
+        std::cout << "Key: " << key << std::endl;
+        std::cout << (cipherMode == 1 ? "Encrypted" : "Decrypted") << " string: " << output << std::endl;
+        // exit successfully
+        exit(0);
+    }
+    // if the file does open, prepare to write to a file
+    else
+    {
+        std::ofstream output;
+        output.open(processed + (cipherMode == 1 ? ".encrypted" : ".decrypted"));
+        // loop through all the characters in the file, store each char into character
+        int character = readFile.get();
+        while(character != EOF)
+        {
+            output << processCharacter(cipherMode, calculateShift(key), (char)character);
+            character = readFile.get();
+        }
+        std::cout << "File opened successfully. " << (cipherMode == 1 ? "Encrypting " : "Decrypting ") << processed << std::endl;
+        std::cout << "Key: " << key << std::endl;
+        std::cout << "Output file: " << processed + (cipherMode == 1 ? ".encrypted" : ".decrypted") << std::endl;
+        // close the input file and output file
+        output.close();
+        readFile.close();
+        // exit successfully
+        exit(0);
+    }
+    
+    //==============================================================
     // String (processedType = 1): -s provided, treat processed as string
 
+    //==============================================================
     // File  (processedType = 2): -f provided, treat processed as filename. if file does not exist, error and exit
     return 0;
 }
@@ -204,6 +247,10 @@ char processCharacter(const int mode, const int shift, const char character)
     }
     else if (mode == 2)     // decrypting
     {
+        if (characterNumber < shift) // handle when (characterNumber - shift) is negative
+        {
+            return RANGE_OF_CHARACTERS[MAX_CHARACTERS_TO_SHIFT + (characterNumber - shift)];
+        }
         return RANGE_OF_CHARACTERS[(characterNumber - shift) % MAX_CHARACTERS_TO_SHIFT];
     }
     else                    // error here
