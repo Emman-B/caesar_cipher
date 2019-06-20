@@ -9,7 +9,7 @@ Emmanuel Butor
 
 ## Usage
 
-Download the repository and compile using 
+Download the repository. Once downloaded, compile it using the command: 
 ```bash
 make
 ```
