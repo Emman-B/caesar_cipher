@@ -99,7 +99,11 @@ int main (int argc, char* argv[])
     }
     ////////////////////////////////////////////////////////////////
     // Begin Encryption/Decryption on String/File
-    
+    // Default: -s or -f not provided, attempt to open as a file and process it; otherwise process it as string
+
+    // String (processedType = 1): -s provided, treat processed as string
+
+    // File  (processedType = 2): -f provided, treat processed as filename. if file does not exist, error and exit
     return 0;
 }
 
