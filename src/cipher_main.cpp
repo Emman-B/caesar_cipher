@@ -13,10 +13,12 @@
 #define MAX_CHARACTERS_TO_SHIFT 62
 
 // FUNCTION PROTOTYPES
-void printFullUsage(const std::string programName);
-void printErrorAndExit(const std::string error);
-int calculateShift(const std::string key);
-char processCharacter(const int mode, const int shift, const char character);
+void printFullUsage(std::string programName);
+void printErrorAndExit(std::string error);
+int calculateShift(std::string key);
+char processCharacter(int mode, int shift, char character);
+std::string processString(std::string key, std::string stringToProcess, int cipherMode);
+std::ofstream processFile(std::string key, std::string fileName, std::ifstream* fileToProcess, int cipherMode);
 
 // MAIN METHOD
 int main (int argc, char* argv[])
@@ -106,14 +108,9 @@ int main (int argc, char* argv[])
     // if the file doesn't open, treat it like a string instead
     if (!readFile.is_open())
     {
-        std::string output = "";            // this is for outputting to stdout
-        int shift = calculateShift(key);    // receive shift amount
-        for (int i = 0; i < processed.length(); i++)
-        {
-            output += processCharacter(cipherMode, shift, processed[i]);
-        }
-        // now output is set to an encrypted/decrypted string
-        // describe the actions taken
+        // processString returns the encrypted/decrypted string
+        std::string output = processString(key, processed, cipherMode);
+
         std::cout << "File failed to open. Treating " << processed << " as a string.\n";
         std::cout << "Key: " << key << std::endl;
         std::cout << (cipherMode == 1 ? "Encrypted" : "Decrypted") << " string: " << output << std::endl;
@@ -123,15 +120,8 @@ int main (int argc, char* argv[])
     // if the file does open, prepare to write to a file
     else
     {
-        std::ofstream output;
-        output.open(processed + (cipherMode == 1 ? ".encrypted" : ".decrypted"));
-        // loop through all the characters in the file, store each char into character
-        int character = readFile.get();
-        while(character != EOF)
-        {
-            output << processCharacter(cipherMode, calculateShift(key), (char)character);
-            character = readFile.get();
-        }
+        std::ofstream output = processFile(key, processed, &readFile, cipherMode);
+        
         std::cout << "File opened successfully. " << (cipherMode == 1 ? "Encrypting " : "Decrypting ") << processed << std::endl;
         std::cout << "Key: " << key << std::endl;
         std::cout << "Output file: " << processed + (cipherMode == 1 ? ".encrypted" : ".decrypted") << std::endl;
@@ -155,9 +145,9 @@ int main (int argc, char* argv[])
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // void printFullUsage()
-// param    : const std::string programName
+// param    : std::string programName
 // desc     : prints full usage for program
-void printFullUsage(const std::string programName)
+void printFullUsage(std::string programName)
 {
     std::cerr << "usage      : " << programName << " <flags> <key> <arg>" << std::endl << std::endl << std::endl;
 
@@ -171,9 +161,9 @@ void printFullUsage(const std::string programName)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // void printErrorAndExit()
-// param    : const std::string error
+// param    : std::string error
 // desc     : prints error and any other information and terminates program
-void printErrorAndExit(const std::string error)
+void printErrorAndExit(std::string error)
 {
     std::cerr << error << std::endl;
     std::cerr << "Program is terminated early." << std::endl;
@@ -182,9 +172,9 @@ void printErrorAndExit(const std::string error)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // int calculateShift()
-// param    : const std::string key
+// param    : std::string key
 // desc     : takes key and uses simple algorithm to calculate shift amount and returns it
-int calculateShift(const std::string key)
+int calculateShift(std::string key)
 {
     // simple algorithm for shift: 
     //  add all character ascii values in key
@@ -203,11 +193,11 @@ int calculateShift(const std::string key)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // char processCharacter()
-// param    : const int mode, const int shift, const char character
+// param    : int mode, int shift, char character
 // desc     : takes character and shifts it a certain number of characters in the direction based off of mode.
 //            note it will shift within this range: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 //            it will also ignore characters that are not numbers or letters
-char processCharacter(const int mode, const int shift, const char character)
+char processCharacter(int mode, int shift, char character)
 {
     // verify if character is number or uppercase letter or lowercase letter
     // note ascii ranges: number [48, 57], uppercase [65, 90], lowercase [97, 122]
@@ -257,4 +247,42 @@ char processCharacter(const int mode, const int shift, const char character)
     {
         printErrorAndExit("ERROR: Invalid mode parameter passed in processCharacter");
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// std::string processString()
+// param    : std::string key, std::string stringToProcess, int cipherMode
+// desc     : takes a key to calculate shift and runs the caesar cipher on the stringToProcess
+//            cipherMode is used to determine whether to encrypt or decrypt
+std::string processString(std::string key, std::string stringToProcess, int cipherMode)
+{
+    std::string output = "";            // this is for outputting to stdout
+    int shift = calculateShift(key);    // receive shift amount
+    for (int i = 0; i < stringToProcess.length(); i++)
+    {
+        output += processCharacter(cipherMode, shift, stringToProcess[i]);
+    }
+    // exit successfully
+    return output;
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// std::ofstream processFile()
+// param    : std::string key, std::string fileName, std::ifstream* fileToProcess, int cipherMode
+// desc     : takes a key to calculate shift and runs the caesar cipher on the fileToProcess
+//            cipherMode is used to determine whether to encrypt or decrypt
+std::ofstream processFile(std::string key, std::string fileName, std::ifstream* fileToProcess, int cipherMode)
+{
+    // return output
+    std::ofstream output;
+    // name of output file should be "<originalfile>.encrypted" or "<originalfile>.decrypted"
+    output.open(fileName + (cipherMode == 1 ? ".encrypted" : ".decrypted"));
+    // loop through all the characters in the file, store each char into character
+    int character = (*fileToProcess).get();
+    while(character != EOF)
+    {
+        output << processCharacter(cipherMode, calculateShift(key), (char)character);
+        character = (*fileToProcess).get();
+    }
+    // return output to be dealt with in main()
+    return output;
 }
