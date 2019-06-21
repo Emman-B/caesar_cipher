@@ -122,14 +122,11 @@ int main (int argc, char* argv[])
         // String (targetType = 1): -s provided, treat target as string
         case MODE_STRING:
         {
+            std::cout << "Doing string " << (cipherMode == MODE_ENCRYPT ? "encryption" : "decryption") << std::endl;
+
             // set output to be the final encrypted/decrypted string
             std::string output = processString(key, target, cipherMode);
 
-            // outputs for user
-            std::cout << "Doing string " << (cipherMode == MODE_ENCRYPT ? "encryption" : "decryption") << std::endl;
-
-            std::cout << "Key: " << key << std::endl;
-            std::cout << (cipherMode == MODE_ENCRYPT ? "Encrypted" : "Decrypted") << " string: " << output << std::endl;
             exit(0);
             break;
         }
@@ -144,12 +141,10 @@ int main (int argc, char* argv[])
             // process the file only if it is open
             if (readFile.is_open())
             {
+                std::cout << "File opened successfully. " << (cipherMode == MODE_ENCRYPT ? "Encrypting " : "Decrypting ") << target << "." << std::endl;
                 // file for outputting the encrypted/decrypted file
                 std::ofstream output = processFile(key, target, &readFile, cipherMode);
                 
-                std::cout << "File opened successfully. " << (cipherMode == MODE_ENCRYPT ? "Encrypting " : "Decrypting ") << target << "." << std::endl;
-                std::cout << "Key: " << key << std::endl;
-                std::cout << "Output file: " << target + (cipherMode == MODE_ENCRYPT ? ".encrypted" : ".decrypted") << std::endl;
                 // close the input file and output file
                 output.close();
                 readFile.close();
@@ -174,22 +169,17 @@ int main (int argc, char* argv[])
             if (!readFile.is_open())
             {
                 // processString returns the encrypted/decrypted string
+                std::cout << "File failed to open. Treating " << target << " as a string.\n";
                 std::string output = processString(key, target, cipherMode);
 
-                std::cout << "File failed to open. Treating " << target << " as a string.\n";
-                std::cout << "Key: " << key << std::endl;
-                std::cout << (cipherMode == MODE_ENCRYPT ? "Encrypted" : "Decrypted") << " string: " << output << std::endl;
                 // exit successfully
                 exit(0);
             }
             // if the file does open, prepare to write to a file
             else
             {
-                std::ofstream output = processFile(key, target, &readFile, cipherMode);
-                
                 std::cout << "File opened successfully. " << (cipherMode == MODE_ENCRYPT ? "Encrypting " : "Decrypting ") << target << std::endl;
-                std::cout << "Key: " << key << std::endl;
-                std::cout << "Output file: " << target + (cipherMode == MODE_ENCRYPT ? ".encrypted" : ".decrypted") << std::endl;
+                std::ofstream output = processFile(key, target, &readFile, cipherMode);
                 // close the input file and output file
                 output.close();
                 readFile.close();
@@ -323,6 +313,11 @@ std::string processString(std::string key, std::string stringToProcess, int ciph
     {
         output += processCharacter(cipherMode, shift, stringToProcess[i]);
     }
+    
+    std::cout << "Key: " << key << std::endl;
+    std::cout << "String: " << stringToProcess << std::endl;
+    std::cout << (cipherMode == MODE_ENCRYPT ? "Encrypted" : "Decrypted") << " string: " << output << std::endl;
+    
     // exit successfully
     return output;
 }
@@ -344,6 +339,10 @@ std::ofstream processFile(std::string key, std::string fileName, std::ifstream* 
         output << processCharacter(cipherMode, calculateShift(key), (char)character);
         character = (*fileToProcess).get();
     }
+
+    std::cout << "Key: " << key << std::endl;
+    std::cout << "Input file: " << fileName << std::endl;
+    std::cout << "Output file: " << fileName + (cipherMode == MODE_ENCRYPT ? ".encrypted" : ".decrypted") << std::endl;
     // return output to be dealt with in main()
     return output;
 }
