@@ -12,6 +12,14 @@
 // format: 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 #define MAX_CHARACTERS_TO_SHIFT 62
 
+// define constants for encryption/decryption modes
+#define MODE_ENCRYPT 1
+#define MODE_DECRYPT 2
+
+// define constants for string/file types
+#define MODE_STRING 1
+#define MODE_FILE 2
+
 // FUNCTION PROTOTYPES
 void printFullUsage(std::string programName);
 void printErrorAndExit(std::string error);
@@ -42,9 +50,9 @@ int main (int argc, char* argv[])
 
     // process all arguments
     int cipherMode = 0;         // 0 = unassigned, 1 = encrypt, 2 = decrypt
-    int processedType = 0;      // optional flag, 0 = unassigned, 1 = string, 2 = file
+    int targetType = 0;         // optional flag, 0 = unassigned, 1 = string, 2 = file
     std::string key = "";       // key for cipher shift
-    std::string processed = ""; // name of file OR string to be processed
+    std::string target = "";    // name of file OR string to be processed
     for (int i = 0; i < argc - 1; i++)
     {
         // received a flag for encrypt/decrypt
@@ -52,7 +60,7 @@ int main (int argc, char* argv[])
         {
             if (cipherMode == 0) // unassigned, assignment is given
             {
-                cipherMode = (args[i].compare("-e") == 0 ? 1 : 2); // assign 1 if it is "-e", 2 if false
+                cipherMode = (args[i].compare("-e") == 0 ? MODE_ENCRYPT : MODE_DECRYPT); // assign 1 if it is "-e", 2 if false
             }
             else // ERROR, multiple flags received
             {
@@ -62,9 +70,9 @@ int main (int argc, char* argv[])
         // received a flag for string/file (optional)
         else if (args[i].compare("-s") == 0|| args[i].compare("-f") == 0)
         {
-            if (processedType == 0)
+            if (targetType == 0)
             {
-                processedType = (args[i].compare("-s") == 0 ? 1 : 2); // assign 1 if it is "-s", 2 if false
+                targetType = (args[i].compare("-s") == 0 ? MODE_STRING : MODE_FILE); // assign 1 if it is "-s", 2 if false
             }
             else // ERROR, multiple flags received
             {
@@ -81,10 +89,10 @@ int main (int argc, char* argv[])
                 // assign key if nothing populated for key
                 key = args[i];
             }
-            // else, check if anything is populated for processed
-            else if (processed.compare("") == 0)
+            // else, check if anything is populated for target
+            else if (target.compare("") == 0)
             {
-                processed = args[i];
+                target = args[i];
             }
             // else ERROR, there is a problematic argument
             else
@@ -93,50 +101,103 @@ int main (int argc, char* argv[])
             }
         }    
     }
-    // now cipherMode, processedType, key, and processed have all been assigned
+    // now cipherMode, targetType, key, and target have all been assigned
     // verify that cipherMode is not 0 otherwise error
     if (cipherMode == 0)
     {
         printErrorAndExit("ERROR: -e or -d was not read. Please ensure that one of these flags are used.");
     }
+    // verify that a key and a target were both provided
+    if (key.compare("") == 0 || target.compare("") == 0)
+    {
+        printErrorAndExit("ERROR: Key or target was not provided.");
+    }
+
     ////////////////////////////////////////////////////////////////
     // Begin Encryption/Decryption on String/File
-    // Default: -s and -f not provided, attempt to open as a file and process it; otherwise process it as string
-    std::cout << "-s and -f were not provided. Attempting to open " << processed << " as a file.\n";
-    std::ifstream readFile;     // readFile is the file being opened
-    readFile.open(processed);   // attempt to open the file
-    // if the file doesn't open, treat it like a string instead
-    if (!readFile.is_open())
+    switch (targetType)
+    // I used extra braces for each of the cases as an error kept getting thrown
     {
-        // processString returns the encrypted/decrypted string
-        std::string output = processString(key, processed, cipherMode);
+        //==============================================================
+        // String (targetType = 1): -s provided, treat target as string
+        case MODE_STRING:
+        {
+            // set output to be the final encrypted/decrypted string
+            std::string output = processString(key, target, cipherMode);
 
-        std::cout << "File failed to open. Treating " << processed << " as a string.\n";
-        std::cout << "Key: " << key << std::endl;
-        std::cout << (cipherMode == 1 ? "Encrypted" : "Decrypted") << " string: " << output << std::endl;
-        // exit successfully
-        exit(0);
-    }
-    // if the file does open, prepare to write to a file
-    else
-    {
-        std::ofstream output = processFile(key, processed, &readFile, cipherMode);
-        
-        std::cout << "File opened successfully. " << (cipherMode == 1 ? "Encrypting " : "Decrypting ") << processed << std::endl;
-        std::cout << "Key: " << key << std::endl;
-        std::cout << "Output file: " << processed + (cipherMode == 1 ? ".encrypted" : ".decrypted") << std::endl;
-        // close the input file and output file
-        output.close();
-        readFile.close();
-        // exit successfully
-        exit(0);
-    }
-    
-    //==============================================================
-    // String (processedType = 1): -s provided, treat processed as string
+            // outputs for user
+            std::cout << "Doing string " << (cipherMode == MODE_ENCRYPT ? "encryption" : "decryption") << std::endl;
 
-    //==============================================================
-    // File  (processedType = 2): -f provided, treat processed as filename. if file does not exist, error and exit
+            std::cout << "Key: " << key << std::endl;
+            std::cout << (cipherMode == MODE_ENCRYPT ? "Encrypted" : "Decrypted") << " string: " << output << std::endl;
+            exit(0);
+            break;
+        }
+        //==============================================================
+        // File  (targetType = 2): -f provided, treat target as filename. if file does not exist, error and exit
+        case MODE_FILE:
+        {
+            // file for reading
+            std::ifstream readFile;
+            // open the file (it closes in the "if" part of the next conditional)
+            readFile.open(target);
+            // process the file only if it is open
+            if (readFile.is_open())
+            {
+                // file for outputting the encrypted/decrypted file
+                std::ofstream output = processFile(key, target, &readFile, cipherMode);
+                
+                std::cout << "File opened successfully. " << (cipherMode == MODE_ENCRYPT ? "Encrypting " : "Decrypting ") << target << "." << std::endl;
+                std::cout << "Key: " << key << std::endl;
+                std::cout << "Output file: " << target + (cipherMode == MODE_ENCRYPT ? ".encrypted" : ".decrypted") << std::endl;
+                // close the input file and output file
+                output.close();
+                readFile.close();
+                // exit successfully
+                exit(0);
+            }
+            // otherwise, throw an error if it failed to open
+            else
+            {
+                printErrorAndExit("ERROR: File " + target + " failed to open.");
+            }
+            break;
+        }
+        //==============================================================
+        // Default: -s and -f not provided, attempt to open as a file and process it; otherwise process it as string
+        default:
+        {
+            std::cout << "-s and -f were not provided. Attempting to open " << target << " as a file.\n";
+            std::ifstream readFile;  // readFile is the file being opened
+            readFile.open(target);   // attempt to open the file
+            // if the file doesn't open, treat it like a string instead
+            if (!readFile.is_open())
+            {
+                // processString returns the encrypted/decrypted string
+                std::string output = processString(key, target, cipherMode);
+
+                std::cout << "File failed to open. Treating " << target << " as a string.\n";
+                std::cout << "Key: " << key << std::endl;
+                std::cout << (cipherMode == MODE_ENCRYPT ? "Encrypted" : "Decrypted") << " string: " << output << std::endl;
+                // exit successfully
+                exit(0);
+            }
+            // if the file does open, prepare to write to a file
+            else
+            {
+                std::ofstream output = processFile(key, target, &readFile, cipherMode);
+                
+                std::cout << "File opened successfully. " << (cipherMode == MODE_ENCRYPT ? "Encrypting " : "Decrypting ") << target << std::endl;
+                std::cout << "Key: " << key << std::endl;
+                std::cout << "Output file: " << target + (cipherMode == MODE_ENCRYPT ? ".encrypted" : ".decrypted") << std::endl;
+                // close the input file and output file
+                output.close();
+                readFile.close();
+                // exit successfully
+                exit(0);
+            }
+        }
+    }
     return 0;
 }
 
@@ -275,7 +336,7 @@ std::ofstream processFile(std::string key, std::string fileName, std::ifstream* 
     // return output
     std::ofstream output;
     // name of output file should be "<originalfile>.encrypted" or "<originalfile>.decrypted"
-    output.open(fileName + (cipherMode == 1 ? ".encrypted" : ".decrypted"));
+    output.open(fileName + (cipherMode == MODE_ENCRYPT ? ".encrypted" : ".decrypted"));
     // loop through all the characters in the file, store each char into character
     int character = (*fileToProcess).get();
     while(character != EOF)
