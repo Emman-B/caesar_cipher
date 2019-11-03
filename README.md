@@ -22,7 +22,8 @@ The format for the input in the command line is as follows:
 ```bash
 ./cipher <flags> <key> <arg>
 ```
-<flags>     [-e|-d] encrypt/decrypt
-            [-s|-f] <arg> is a string/filename
-<key>       - string input for encryption/decryption
-<arg>       - string/filename to encrypt/decrypt
+flags:     [-e|-d] mode: encrypt/decrypt; [-s|-f] arg is a string/filename
+
+key: string input for encryption/decryption
+
+arg: string/filename to encrypt/decrypt
